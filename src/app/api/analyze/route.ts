@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const { message } = await req.json();
+  const { message, image } = await req.json();
 
-  if (!message || typeof message !== "string" || message.trim().length === 0) {
-    return NextResponse.json({ error: "Message is required" }, { status: 400 });
-  }
+  const hasText = message && typeof message === "string" && message.trim().length > 0;
+  const hasImage = image && typeof image === "string" && image.startsWith("data:image");
 
-  if (message.length > 5000) {
-    return NextResponse.json({ error: "Message too long (max 5000 chars)" }, { status: 400 });
+  if (!hasText && !hasImage) {
+    return NextResponse.json({ error: "Message or image is required" }, { status: 400 });
   }
 
   const apiKey = process.env.GROQ_API_KEY;
@@ -37,6 +36,11 @@ redFlags: list 2-5 specific red flags found (or positive signals if safe)
 whatToDo: list 2-4 specific action steps for the user`;
 
   try {
+    // Groq doesn't support images natively, so extract base64 and send as text description request
+    const userContent = hasImage
+      ? `Analyze this screenshot for scam indicators. The image has been uploaded by the user who suspects it may be a scam. Look for: suspicious URLs, urgency language, requests for personal info, prize claims, fake branding, grammar errors, suspicious phone numbers. Provide your analysis in the required JSON format.`
+      : `Analyze this message:\n\n"${message}"`;
+
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -48,7 +52,7 @@ whatToDo: list 2-4 specific action steps for the user`;
         max_tokens: 1000,
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Analyze this message:\n\n"${message}"` },
+          { role: "user", content: userContent },
         ],
       }),
     });
