@@ -23,22 +23,19 @@ const EXAMPLES = [
 
 const VERDICT_CONFIG: Record<string, {
   color: string; bg: string; border: string;
-  icon: string; label: string; glow: string; particle: string;
+  icon: string; label: string; glow: string;
 }> = {
   DANGER: {
     color: "#ff3b3b", bg: "rgba(255,59,59,0.06)", border: "rgba(255,59,59,0.35)",
     icon: "⛔", label: "CONFIRMED SCAM", glow: "0 0 60px rgba(255,59,59,0.25)",
-    particle: "#ff3b3b",
   },
   WARNING: {
     color: "#ffb800", bg: "rgba(255,184,0,0.06)", border: "rgba(255,184,0,0.35)",
     icon: "⚠️", label: "SUSPICIOUS", glow: "0 0 60px rgba(255,184,0,0.25)",
-    particle: "#ffb800",
   },
   SAFE: {
     color: "#00d97e", bg: "rgba(0,217,126,0.06)", border: "rgba(0,217,126,0.35)",
     icon: "✅", label: "LOOKS SAFE", glow: "0 0 60px rgba(0,217,126,0.25)",
-    particle: "#00d97e",
   },
 };
 
@@ -55,6 +52,7 @@ function useCountUp(target: number, duration: number = 1200, active: boolean = f
   const [count, setCount] = useState(0);
   useEffect(() => {
     if (!active) return;
+    setCount(0);
     let start = 0;
     const step = target / (duration / 16);
     const timer = setInterval(() => {
@@ -81,9 +79,11 @@ export default function ScamShield() {
   const [hoveredExample, setHoveredExample] = useState<string | null>(null);
   const [scanLine, setScanLine] = useState(0);
   const [showResult, setShowResult] = useState(false);
+  const [glitchText, setGlitchText] = useState("SCAM");
   const fileRef = useRef<HTMLInputElement>(null);
   const score = useCountUp(result?.riskScore ?? 0, 1500, showResult);
 
+  // Staggered page load
   useEffect(() => {
     const timers = [
       setTimeout(() => setPhase(1), 100),
@@ -94,6 +94,35 @@ export default function ScamShield() {
     return () => timers.forEach(clearTimeout);
   }, []);
 
+  // Glitch effect on SCAM text
+  useEffect(() => {
+    const chars = "X#@!%$&*?";
+    let iterations = 0;
+    const original = "SCAM";
+    const interval = setInterval(() => {
+      if (iterations > 12) { setGlitchText("SCAM"); clearInterval(interval); return; }
+      setGlitchText(
+        original.split("").map((c, i) =>
+          i < iterations / 3 ? c : chars[Math.floor(Math.random() * chars.length)]
+        ).join("")
+      );
+      iterations++;
+    }, 80);
+    const loop = setInterval(() => {
+      let it = 0;
+      const inner = setInterval(() => {
+        if (it > 12) { setGlitchText("SCAM"); clearInterval(inner); return; }
+        setGlitchText(
+          original.split("").map((c, i) =>
+            i < it / 3 ? c : chars[Math.floor(Math.random() * chars.length)]
+          ).join("")
+        );
+        it++;
+      }, 80);
+    }, 6000);
+    return () => { clearInterval(interval); clearInterval(loop); };
+  }, []);
+
   useEffect(() => {
     if (!loading) { setDots(""); setScanLine(0); return; }
     const id = setInterval(() => setDots((d) => (d.length >= 3 ? "" : d + ".")), 400);
@@ -102,11 +131,8 @@ export default function ScamShield() {
   }, [loading]);
 
   useEffect(() => {
-    if (result) {
-      setTimeout(() => setShowResult(true), 100);
-    } else {
-      setShowResult(false);
-    }
+    if (result) { setTimeout(() => setShowResult(true), 100); }
+    else { setShowResult(false); }
   }, [result]);
 
   function handleFile(file: File) {
@@ -178,10 +204,6 @@ export default function ScamShield() {
           0%, 100% { border-color: rgba(255,184,0,0.2); box-shadow: 0 0 0 rgba(255,184,0,0); }
           50%       { border-color: rgba(255,184,0,0.5); box-shadow: 0 0 20px rgba(255,184,0,0.1); }
         }
-        @keyframes scanPulse {
-          0%, 100% { opacity: 0.6; }
-          50%       { opacity: 1; }
-        }
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50%       { transform: translateY(-8px); }
@@ -190,38 +212,50 @@ export default function ScamShield() {
           0%   { background-position: -200% center; }
           100% { background-position: 200% center; }
         }
-        @keyframes ringExpand {
-          0%   { transform: scale(0.8); opacity: 1; }
-          100% { transform: scale(2); opacity: 0; }
-        }
         @keyframes slideInLeft {
           from { opacity: 0; transform: translateX(-20px); }
           to   { opacity: 1; transform: translateX(0); }
         }
-        @keyframes countBar {
-          from { width: 0%; }
+        @keyframes typewriter {
+          from { width: 0; }
+          to   { width: 100%; }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0; }
+        }
+        @keyframes glowPulse {
+          0%, 100% { text-shadow: 0 0 10px rgba(255,184,0,0.3); }
+          50%       { text-shadow: 0 0 30px rgba(255,184,0,0.8), 0 0 60px rgba(255,184,0,0.4); }
+        }
+        @keyframes scanline {
+          0%   { top: -10%; }
+          100% { top: 110%; }
+        }
+        @keyframes flicker {
+          0%, 95%, 100% { opacity: 1; }
+          96%            { opacity: 0.4; }
+          98%            { opacity: 0.8; }
         }
         * { box-sizing: border-box; }
         textarea:focus { outline: none; }
         button { cursor: pointer; }
-        .example-btn:hover { 
-          border-color: rgba(255,184,0,0.5) !important; 
+        .example-btn:hover {
+          border-color: rgba(255,184,0,0.5) !important;
           color: #ffb800 !important;
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(255,184,0,0.15);
         }
         .scan-btn:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 8px 32px rgba(255,184,0,0.3) !important;
+          box-shadow: 0 8px 32px rgba(255,184,0,0.35) !important;
         }
-        .tab-btn:hover {
-          opacity: 1 !important;
-        }
-        .flag-row {
-          animation: slideInLeft 0.4s cubic-bezier(0.16,1,0.3,1) both;
-        }
-        .action-row {
-          animation: slideInLeft 0.4s cubic-bezier(0.16,1,0.3,1) both;
+        .flag-row { animation: slideInLeft 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+        .action-row { animation: slideInLeft 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+        .about-card:hover {
+          border-color: rgba(255,184,0,0.15) !important;
+          background: rgba(255,255,255,0.035) !important;
+          transform: translateX(4px);
         }
       `}</style>
 
@@ -229,9 +263,10 @@ export default function ScamShield() {
         minHeight: "100vh", background: "#060a10",
         fontFamily: "'IBM Plex Mono', 'Courier New', monospace",
         color: "#c8d4e0", position: "relative", overflow: "hidden",
+        
       }}>
 
-        {/* Animated grid background */}
+        {/* Animated grid */}
         <div style={{
           position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
           backgroundImage: "linear-gradient(rgba(255,184,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,184,0,0.04) 1px, transparent 1px)",
@@ -239,17 +274,24 @@ export default function ScamShield() {
           animation: "gridShift 8s linear infinite",
         }} />
 
+        {/* Moving scanline */}
+        <div style={{
+          position: "fixed", left: 0, right: 0, height: "2px", zIndex: 0, pointerEvents: "none",
+          background: "linear-gradient(90deg, transparent, rgba(255,184,0,0.06), transparent)",
+          animation: "scanline 8s linear infinite",
+        }} />
+
         {/* Corner decorations */}
-        {["top-left", "top-right", "bottom-left", "bottom-right"].map((pos) => (
+        {(["top-left","top-right","bottom-left","bottom-right"] as const).map((pos) => (
           <div key={pos} style={{
             position: "fixed", zIndex: 0, pointerEvents: "none",
-            ...(pos.includes("top") ? { top: "20px" } : { bottom: "20px" }),
-            ...(pos.includes("left") ? { left: "20px" } : { right: "20px" }),
-            width: "60px", height: "60px",
-            borderTop: pos.includes("top") ? "1px solid rgba(255,184,0,0.15)" : "none",
-            borderBottom: pos.includes("bottom") ? "1px solid rgba(255,184,0,0.15)" : "none",
-            borderLeft: pos.includes("left") ? "1px solid rgba(255,184,0,0.15)" : "none",
-            borderRight: pos.includes("right") ? "1px solid rgba(255,184,0,0.15)" : "none",
+            ...(pos.includes("top") ? { top: "16px" } : { bottom: "16px" }),
+            ...(pos.includes("left") ? { left: "16px" } : { right: "16px" }),
+            width: "48px", height: "48px",
+            borderTop: pos.includes("top") ? "1px solid rgba(255,184,0,0.12)" : "none",
+            borderBottom: pos.includes("bottom") ? "1px solid rgba(255,184,0,0.12)" : "none",
+            borderLeft: pos.includes("left") ? "1px solid rgba(255,184,0,0.12)" : "none",
+            borderRight: pos.includes("right") ? "1px solid rgba(255,184,0,0.12)" : "none",
           }} />
         ))}
 
@@ -260,17 +302,13 @@ export default function ScamShield() {
           background: "radial-gradient(ellipse, rgba(255,184,0,0.07) 0%, transparent 65%)",
           pointerEvents: "none", zIndex: 0,
         }} />
-
-        {/* Side glow orbs */}
         <div style={{
-          position: "fixed", top: "40%", left: "-100px",
-          width: "300px", height: "300px",
+          position: "fixed", top: "40%", left: "-100px", width: "300px", height: "300px",
           background: "radial-gradient(ellipse, rgba(255,59,59,0.04) 0%, transparent 70%)",
           pointerEvents: "none", zIndex: 0,
         }} />
         <div style={{
-          position: "fixed", top: "60%", right: "-100px",
-          width: "300px", height: "300px",
+          position: "fixed", top: "60%", right: "-100px", width: "300px", height: "300px",
           background: "radial-gradient(ellipse, rgba(0,217,126,0.04) 0%, transparent 70%)",
           pointerEvents: "none", zIndex: 0,
         }} />
@@ -283,7 +321,7 @@ export default function ScamShield() {
           {/* ── HEADER ── */}
           <div style={{ textAlign: "center", marginBottom: "52px", ...stagger(0) }}>
 
-            {/* Shield icon with rings */}
+            {/* Floating shield */}
             <div style={{ position: "relative", display: "inline-block", marginBottom: "28px", animation: "float 4s ease-in-out infinite" }}>
               <div style={{
                 width: "72px", height: "72px", borderRadius: "50%",
@@ -293,19 +331,16 @@ export default function ScamShield() {
                 boxShadow: "0 0 30px rgba(255,184,0,0.1)",
               }}>
                 🛡️
-                {/* Spinning rings */}
                 <div style={{
                   position: "absolute", inset: "-12px", borderRadius: "50%",
                   border: "1px solid transparent",
-                  borderTopColor: "rgba(255,184,0,0.4)",
-                  borderRightColor: "rgba(255,184,0,0.2)",
+                  borderTopColor: "rgba(255,184,0,0.4)", borderRightColor: "rgba(255,184,0,0.2)",
                   animation: "spin 3s linear infinite",
                 }} />
                 <div style={{
-                  position: "absolute", inset: "-20px", borderRadius: "50%",
+                  position: "absolute", inset: "-22px", borderRadius: "50%",
                   border: "1px solid transparent",
-                  borderBottomColor: "rgba(255,184,0,0.2)",
-                  borderLeftColor: "rgba(255,184,0,0.1)",
+                  borderBottomColor: "rgba(255,184,0,0.15)", borderLeftColor: "rgba(255,184,0,0.08)",
                   animation: "spinReverse 5s linear infinite",
                 }} />
               </div>
@@ -334,7 +369,7 @@ export default function ScamShield() {
               </div>
             </div>
 
-            {/* Logo with shimmer */}
+            {/* Glitch logo */}
             <h1 style={{
               fontSize: "clamp(52px, 9vw, 84px)", fontWeight: 700, lineHeight: 0.95,
               letterSpacing: "-0.05em", margin: "0 0 16px 0",
@@ -344,27 +379,38 @@ export default function ScamShield() {
                 backgroundSize: "200% auto",
                 WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                 animation: "shimmer 4s linear infinite",
-              }}>SCAM</span>
+                display: "inline-block",
+              }}>{glitchText}</span>
               <span style={{
                 background: "linear-gradient(135deg, #ffb800 0%, #ffd700 50%, #ffb800 100%)",
                 backgroundSize: "200% auto",
                 WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                animation: "shimmer 4s linear infinite 0.5s",
+                animation: "shimmer 4s linear infinite 0.5s, glowPulse 3s ease-in-out infinite",
+                display: "inline-block",
               }}>SHIELD</span>
             </h1>
 
-            <p style={{
-              fontSize: "14px", color: "rgba(200,212,224,0.45)",
-              lineHeight: 1.7, maxWidth: "380px", margin: "0 auto",
+            {/* Typewriter subtitle */}
+            <div style={{
+              fontSize: "13px", color: "rgba(200,212,224,0.45)",
+              lineHeight: 1.7, maxWidth: "420px", margin: "0 auto",
               fontFamily: "sans-serif", fontWeight: 300, letterSpacing: "0.01em",
             }}>
-              Paste suspicious text or upload a screenshot.<br />
-              AI-powered scam detection — free, private, instant.
-            </p>
+              <span style={{ color: "rgba(255,184,0,0.4)" }}>{">"}</span>
+              {" "}Paste suspicious text or upload a screenshot.
+              <br />
+              <span style={{ color: "rgba(255,184,0,0.4)" }}>{">"}</span>
+              {" "}AI-powered scam detection — free, private, instant.
+              <span style={{
+                display: "inline-block", width: "2px", height: "13px",
+                background: "#ffb800", marginLeft: "2px", verticalAlign: "middle",
+                animation: "blink 1s step-end infinite",
+              }} />
+            </div>
 
             {/* Stats */}
             <div style={{
-              display: "flex", justifyContent: "center", gap: "0",
+              display: "flex", justifyContent: "center",
               marginTop: "32px", paddingTop: "28px",
               borderTop: "1px solid rgba(255,255,255,0.06)",
             }}>
@@ -372,11 +418,12 @@ export default function ScamShield() {
                 <div key={lbl} style={{
                   textAlign: "center", flex: 1, padding: "0 16px",
                   borderRight: i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none",
-                  ...stagger(i),
                 }}>
                   <div style={{
                     fontSize: "22px", fontWeight: 700, color: "#ffb800",
                     letterSpacing: "-0.02em", marginBottom: "4px",
+                    animation: "glowPulse 3s ease-in-out infinite",
+                    animationDelay: `${i * 0.5}s`,
                   }}>{val}</div>
                   <div style={{ fontSize: "9px", color: "rgba(200,212,224,0.3)", textTransform: "uppercase", letterSpacing: "0.12em" }}>{lbl}</div>
                 </div>
@@ -392,13 +439,11 @@ export default function ScamShield() {
               border: "1px solid rgba(255,255,255,0.07)",
             }}>
               {(["text", "image"] as const).map((t) => (
-                <button key={t} className="tab-btn"
+                <button key={t}
                   onClick={() => { setTab(t); setResult(null); setError(""); }}
                   style={{
                     flex: 1, padding: "11px",
-                    background: tab === t
-                      ? "linear-gradient(135deg, #ffb800, #ffd000)"
-                      : "transparent",
+                    background: tab === t ? "linear-gradient(135deg, #ffb800, #ffd000)" : "transparent",
                     border: "none", borderRadius: "7px",
                     color: tab === t ? "#060a10" : "rgba(200,212,224,0.4)",
                     fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em",
@@ -420,7 +465,7 @@ export default function ScamShield() {
                   ↗ Try an example
                 </div>
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  {EXAMPLES.map((ex, i) => (
+                  {EXAMPLES.map((ex) => (
                     <button key={ex.label} className="example-btn"
                       onClick={() => { setText(ex.text); setResult(null); setError(""); }}
                       onMouseEnter={() => setHoveredExample(ex.label)}
@@ -432,7 +477,6 @@ export default function ScamShield() {
                         padding: "6px 12px", borderRadius: "6px",
                         fontSize: "11px", fontFamily: "inherit",
                         transition: "all 0.25s cubic-bezier(0.16,1,0.3,1)",
-                        animationDelay: `${i * 0.08}s`,
                       }}
                     >{ex.label}</button>
                   ))}
@@ -450,12 +494,11 @@ export default function ScamShield() {
                     border: "1px solid rgba(255,255,255,0.08)",
                     borderRadius: "10px", padding: "20px",
                     color: "#f0f4f8", fontSize: "14px", lineHeight: 1.75,
-                    fontFamily: "inherit", resize: "none",
-                    transition: "all 0.3s ease",
+                    fontFamily: "inherit", resize: "none", transition: "all 0.3s ease",
                   } as CSSProperties}
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = "rgba(255,184,0,0.4)";
-                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(255,184,0,0.06), inset 0 0 30px rgba(255,184,0,0.02)";
+                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(255,184,0,0.06)";
                     e.currentTarget.style.background = "rgba(255,255,255,0.035)";
                   }}
                   onBlur={(e) => {
@@ -490,7 +533,6 @@ export default function ScamShield() {
             <div style={{ marginBottom: "14px", ...stagger(2) }}>
               <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-
               {!image ? (
                 <div
                   onClick={() => fileRef.current?.click()}
@@ -502,42 +544,26 @@ export default function ScamShield() {
                   }}
                   style={{
                     border: `2px dashed ${dragOver ? "rgba(255,184,0,0.7)" : "rgba(255,255,255,0.12)"}`,
-                    borderRadius: "12px", padding: "56px 24px", textAlign: "center",
-                    cursor: "pointer",
+                    borderRadius: "12px", padding: "56px 24px", textAlign: "center", cursor: "pointer",
                     transition: "all 0.3s cubic-bezier(0.16,1,0.3,1)",
                     background: dragOver ? "rgba(255,184,0,0.06)" : "rgba(255,255,255,0.015)",
                     transform: dragOver ? "scale(1.01)" : "scale(1)",
-                    boxShadow: dragOver ? "0 0 40px rgba(255,184,0,0.1), inset 0 0 40px rgba(255,184,0,0.03)" : "none",
+                    boxShadow: dragOver ? "0 0 40px rgba(255,184,0,0.1)" : "none",
                   }}
                 >
                   <div style={{ fontSize: "48px", marginBottom: "16px", filter: dragOver ? "drop-shadow(0 0 12px rgba(255,184,0,0.5))" : "none", transition: "filter 0.3s" }}>🖼️</div>
                   <div style={{ fontSize: "15px", color: dragOver ? "#ffb800" : "rgba(200,212,224,0.5)", fontFamily: "sans-serif", fontWeight: 500, marginBottom: "8px", transition: "color 0.3s" }}>
                     {dragOver ? "Drop it!" : "Click to upload or drag & drop"}
                   </div>
-                  <div style={{ fontSize: "11px", color: "rgba(200,212,224,0.25)", fontFamily: "sans-serif" }}>
-                    PNG · JPG · WEBP · up to 5MB
-                  </div>
+                  <div style={{ fontSize: "11px", color: "rgba(200,212,224,0.25)", fontFamily: "sans-serif" }}>PNG · JPG · WEBP · up to 5MB</div>
                 </div>
               ) : (
-                <div style={{
-                  borderRadius: "12px", overflow: "hidden",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  animation: "fadeSlide 0.4s cubic-bezier(0.16,1,0.3,1)",
-                }}>
-                  <img src={image} alt="Uploaded"
-                    style={{ width: "100%", maxHeight: "280px", objectFit: "contain", background: "rgba(255,255,255,0.02)", display: "block" }} />
-                  <div style={{
-                    padding: "10px 16px", background: "rgba(0,0,0,0.5)",
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    borderTop: "1px solid rgba(255,255,255,0.06)",
-                  }}>
+                <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)", animation: "fadeSlide 0.4s cubic-bezier(0.16,1,0.3,1)" }}>
+                  <img src={image} alt="Uploaded" style={{ width: "100%", maxHeight: "280px", objectFit: "contain", background: "rgba(255,255,255,0.02)", display: "block" }} />
+                  <div style={{ padding: "10px 16px", background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                     <span style={{ fontSize: "11px", color: "rgba(200,212,224,0.5)", fontFamily: "sans-serif" }}>📎 {imageName}</span>
                     <button onClick={() => { setImage(null); setImageName(""); setResult(null); setError(""); }}
-                      style={{
-                        background: "rgba(255,59,59,0.1)", border: "1px solid rgba(255,59,59,0.2)",
-                        borderRadius: "4px", color: "#ff6b6b", fontSize: "11px", padding: "3px 10px",
-                        fontFamily: "inherit", transition: "all 0.2s",
-                      }}>Remove</button>
+                      style={{ background: "rgba(255,59,59,0.1)", border: "1px solid rgba(255,59,59,0.2)", borderRadius: "4px", color: "#ff6b6b", fontSize: "11px", padding: "3px 10px", fontFamily: "inherit", transition: "all 0.2s" }}>Remove</button>
                   </div>
                 </div>
               )}
@@ -546,14 +572,11 @@ export default function ScamShield() {
 
           {/* ── SCAN BUTTON ── */}
           <div style={{ position: "relative", marginBottom: "16px", ...stagger(3) }}>
-            <button
-              onClick={analyze} disabled={!btnActive} className="scan-btn"
+            <button onClick={analyze} disabled={!btnActive} className="scan-btn"
               style={{
                 width: "100%", padding: "18px",
-                background: btnActive
-                  ? "linear-gradient(135deg, #ffb800 0%, #ffd000 50%, #ffb800 100%)"
-                  : "rgba(255,184,0,0.06)",
-                backgroundSize: btnActive ? "200% auto" : "auto",
+                background: btnActive ? "linear-gradient(135deg, #ffb800 0%, #ffd000 50%, #ffb800 100%)" : "rgba(255,184,0,0.06)",
+                backgroundSize: "200% auto",
                 border: `1px solid ${btnActive ? "rgba(255,200,0,0.6)" : "rgba(255,184,0,0.15)"}`,
                 borderRadius: "10px",
                 color: btnActive ? "#060a10" : "rgba(255,184,0,0.3)",
@@ -573,47 +596,24 @@ export default function ScamShield() {
                   }} />
                   ANALYZING{dots}
                 </span>
-              ) : `⚡  SCAN FOR SCAM`}
+              ) : "⚡  SCAN FOR SCAM"}
             </button>
-
-            {/* Scanning progress bar */}
             {loading && (
-              <div style={{
-                position: "absolute", bottom: 0, left: 0, right: 0, height: "2px",
-                background: "rgba(0,0,0,0.3)", borderRadius: "0 0 10px 10px", overflow: "hidden",
-              }}>
-                <div style={{
-                  height: "100%", width: `${scanLine}%`,
-                  background: "linear-gradient(90deg, transparent, #060a10, transparent)",
-                  transition: "width 0.02s linear",
-                }} />
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "2px", background: "rgba(0,0,0,0.3)", borderRadius: "0 0 10px 10px", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${scanLine}%`, background: "linear-gradient(90deg, transparent, #060a10, transparent)", transition: "width 0.02s linear" }} />
               </div>
             )}
           </div>
 
           {/* Loading state */}
           {loading && (
-            <div style={{
-              marginBottom: "16px", padding: "20px",
-              background: "rgba(255,184,0,0.04)",
-              border: "1px solid rgba(255,184,0,0.15)",
-              borderRadius: "10px",
-              animation: "fadeSlide 0.3s ease",
-            }}>
+            <div style={{ marginBottom: "16px", padding: "20px", background: "rgba(255,184,0,0.04)", border: "1px solid rgba(255,184,0,0.15)", borderRadius: "10px", animation: "fadeSlide 0.3s ease" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-                <div style={{
-                  width: "8px", height: "8px", borderRadius: "50%", background: "#ffb800",
-                  animation: "pulse 1s ease-in-out infinite", boxShadow: "0 0 8px #ffb800",
-                }} />
+                <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#ffb800", animation: "pulse 1s ease-in-out infinite", boxShadow: "0 0 8px #ffb800" }} />
                 <span style={{ fontSize: "11px", color: "#ffb800", letterSpacing: "0.1em" }}>SCANNING MESSAGE</span>
               </div>
               {["Checking for phishing patterns", "Analyzing urgency signals", "Verifying sender credibility", "Computing risk score"].map((step, i) => (
-                <div key={step} style={{
-                  fontSize: "11px", color: "rgba(200,212,224,0.4)",
-                  padding: "4px 0", fontFamily: "sans-serif",
-                  animation: `fadeSlide 0.4s ease ${i * 0.15}s both`,
-                  display: "flex", alignItems: "center", gap: "8px",
-                }}>
+                <div key={step} style={{ fontSize: "11px", color: "rgba(200,212,224,0.4)", padding: "4px 0", fontFamily: "sans-serif", animation: `fadeSlide 0.4s ease ${i * 0.15}s both`, display: "flex", alignItems: "center", gap: "8px" }}>
                   <span style={{ color: "#ffb800", fontSize: "9px" }}>▶</span>
                   {step}
                   <span style={{ animation: `pulse ${1 + i * 0.2}s ease-in-out infinite`, color: "#ffb800" }}>...</span>
@@ -624,60 +624,36 @@ export default function ScamShield() {
 
           {/* Error */}
           {error && (
-            <div style={{
-              marginBottom: "16px", padding: "16px",
-              background: "rgba(255,59,59,0.06)", border: "1px solid rgba(255,59,59,0.2)",
-              borderRadius: "10px", color: "#ff6b6b", fontSize: "13px",
-              animation: "fadeSlide 0.3s ease",
-              display: "flex", alignItems: "center", gap: "10px",
-            }}>
-              <span style={{ fontSize: "18px" }}>⚠️</span>
-              {error}
+            <div style={{ marginBottom: "16px", padding: "16px", background: "rgba(255,59,59,0.06)", border: "1px solid rgba(255,59,59,0.2)", borderRadius: "10px", color: "#ff6b6b", fontSize: "13px", animation: "fadeSlide 0.3s ease", display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ fontSize: "18px" }}>⚠️</span>{error}
             </div>
           )}
 
           {/* ── RESULT ── */}
           {result && cfg && (
             <div style={{
-              border: `1px solid ${cfg.border}`,
-              borderRadius: "14px", background: cfg.bg,
-              boxShadow: showResult ? cfg.glow : "none",
-              overflow: "hidden",
-              animation: "fadeSlide 0.6s cubic-bezier(0.16,1,0.3,1)",
-              transition: "box-shadow 0.5s ease",
+              border: `1px solid ${cfg.border}`, borderRadius: "14px", background: cfg.bg,
+              boxShadow: showResult ? cfg.glow : "none", overflow: "hidden",
+              animation: "fadeSlide 0.6s cubic-bezier(0.16,1,0.3,1)", transition: "box-shadow 0.5s ease",
             }}>
-
-              {/* Top accent line */}
               <div style={{ height: "2px", background: `linear-gradient(90deg, transparent, ${cfg.color}, transparent)` }} />
 
               {/* Verdict header */}
-              <div style={{
-                padding: "28px 32px",
-                borderBottom: `1px solid ${cfg.border}`,
-                display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "20px",
-              }}>
+              <div style={{ padding: "28px 32px", borderBottom: `1px solid ${cfg.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                   <div style={{
                     width: "60px", height: "60px", borderRadius: "50%",
-                    background: `rgba(${cfg.color === "#ff3b3b" ? "255,59,59" : cfg.color === "#ffb800" ? "255,184,0" : "0,217,126"}, 0.1)`,
-                    border: `1px solid ${cfg.border}`,
+                    background: `${cfg.color}18`, border: `1px solid ${cfg.border}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: "26px", flexShrink: 0,
                     boxShadow: `0 0 20px ${cfg.color}20`,
                     animation: "float 3s ease-in-out infinite",
                   }}>{cfg.icon}</div>
                   <div>
-                    <div style={{
-                      fontSize: "10px", color: cfg.color, letterSpacing: "0.15em",
-                      textTransform: "uppercase", marginBottom: "5px", fontWeight: 700,
-                    }}>{cfg.label}</div>
-                    <div style={{ fontSize: "18px", fontWeight: 600, color: "#f0f4f8", fontFamily: "sans-serif" }}>
-                      {result.scamType}
-                    </div>
+                    <div style={{ fontSize: "10px", color: cfg.color, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "5px", fontWeight: 700, animation: "glowPulse 2s ease-in-out infinite" }}>{cfg.label}</div>
+                    <div style={{ fontSize: "18px", fontWeight: 600, color: "#f0f4f8", fontFamily: "sans-serif" }}>{result.scamType}</div>
                   </div>
                 </div>
-
-                {/* Animated risk meter */}
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontSize: "9px", color: "rgba(200,212,224,0.35)", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Risk Score</div>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -690,70 +666,49 @@ export default function ScamShield() {
                         boxShadow: `0 0 8px ${cfg.color}60`,
                       }} />
                     </div>
-                    <span style={{
-                      fontSize: "28px", fontWeight: 700, color: cfg.color,
-                      fontVariantNumeric: "tabular-nums",
-                      textShadow: `0 0 20px ${cfg.color}60`,
-                    }}>{score}</span>
+                    <span style={{ fontSize: "28px", fontWeight: 700, color: cfg.color, textShadow: `0 0 20px ${cfg.color}60` }}>{score}</span>
                   </div>
                 </div>
               </div>
 
               {/* Summary */}
               <div style={{ padding: "22px 32px", borderBottom: `1px solid ${cfg.border}` }}>
-                <p style={{
-                  fontSize: "14px", color: "rgba(240,244,248,0.8)", lineHeight: 1.8,
-                  fontFamily: "sans-serif", margin: 0, fontWeight: 300,
-                }}>{result.summary}</p>
+                <p style={{ fontSize: "14px", color: "rgba(240,244,248,0.8)", lineHeight: 1.8, fontFamily: "sans-serif", margin: 0, fontWeight: 300 }}>{result.summary}</p>
               </div>
 
-              {/* Red flags */}
+              {/* Red flags — FIXED: removed duplicate fontSize */}
               <div style={{ padding: "22px 32px", borderBottom: `1px solid ${cfg.border}` }}>
-                <div style={{
-                  fontSize: "9px", color: "rgba(200,212,224,0.35)", letterSpacing: "0.14em",
-                  textTransform: "uppercase", marginBottom: "16px", fontWeight: 700,
-                }}>
+                <div style={{ fontSize: "9px", color: "rgba(200,212,224,0.35)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "16px", fontWeight: 700 }}>
                   {result.verdict === "SAFE" ? "✓  Positive Signals" : "⚑  Red Flags Detected"}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                   {result.redFlags.map((flag, i) => (
-                    <div key={i} className="flag-row" style={{
-                      display: "flex", gap: "12px", alignItems: "flex-start",
-                      animationDelay: `${i * 0.1}s`,
-                    }}>
+                    <div key={i} className="flag-row" style={{ display: "flex", gap: "12px", alignItems: "flex-start", animationDelay: `${i * 0.1}s` }}>
                       <span style={{
-                        color: cfg.color, fontSize: "11px", marginTop: "3px", flexShrink: 0,
-                        width: "16px", height: "16px", borderRadius: "50%",
+                        color: cfg.color, flexShrink: 0,
+                        width: "18px", height: "18px", borderRadius: "50%",
                         background: `${cfg.color}15`, border: `1px solid ${cfg.color}30`,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: "8px",
+                        fontSize: "9px", marginTop: "2px",
                       }}>
                         {result.verdict === "SAFE" ? "✓" : "!"}
                       </span>
-                      <span style={{ fontSize: "13px", color: "rgba(240,244,248,0.7)", lineHeight: 1.6, fontFamily: "sans-serif" }}>
-                        {flag}
-                      </span>
+                      <span style={{ fontSize: "13px", color: "rgba(240,244,248,0.7)", lineHeight: 1.6, fontFamily: "sans-serif" }}>{flag}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* What to do */}
+              {/* Actions */}
               <div style={{ padding: "22px 32px" }}>
-                <div style={{
-                  fontSize: "9px", color: "rgba(200,212,224,0.35)", letterSpacing: "0.14em",
-                  textTransform: "uppercase", marginBottom: "16px", fontWeight: 700,
-                }}>
-                  ◈  Recommended Actions
-                </div>
+                <div style={{ fontSize: "9px", color: "rgba(200,212,224,0.35)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "16px", fontWeight: 700 }}>◈  Recommended Actions</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                   {result.whatToDo.map((action, i) => (
                     <div key={i} className="action-row" style={{
                       display: "flex", gap: "14px", alignItems: "flex-start",
                       background: "rgba(255,255,255,0.02)", padding: "14px 16px",
                       borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)",
-                      animationDelay: `${i * 0.12}s`,
-                      transition: "border-color 0.2s, background 0.2s",
+                      animationDelay: `${i * 0.12}s`, transition: "all 0.2s",
                     }}>
                       <span style={{
                         width: "24px", height: "24px", borderRadius: "6px",
@@ -762,30 +717,20 @@ export default function ScamShield() {
                         fontSize: "11px", fontWeight: 700, flexShrink: 0,
                         boxShadow: `0 2px 8px ${cfg.color}40`,
                       }}>{i + 1}</span>
-                      <span style={{ fontSize: "13px", color: "rgba(240,244,248,0.75)", lineHeight: 1.6, fontFamily: "sans-serif", paddingTop: "2px" }}>
-                        {action}
-                      </span>
+                      <span style={{ fontSize: "13px", color: "rgba(240,244,248,0.75)", lineHeight: 1.6, fontFamily: "sans-serif", paddingTop: "2px" }}>{action}</span>
                     </div>
                   ))}
                 </div>
               </div>
-
-              {/* Bottom accent */}
               <div style={{ height: "1px", background: `linear-gradient(90deg, transparent, ${cfg.color}30, transparent)` }} />
             </div>
           )}
 
           {/* ── ABOUT SECTION ── */}
-          <div style={{
-            marginTop: "52px", padding: "32px",
-            background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: "14px", ...stagger(4),
-          }}>
-            <div style={{
-              fontSize: "9px", color: "rgba(255,184,0,0.6)", letterSpacing: "0.18em",
-              textTransform: "uppercase", marginBottom: "20px", fontWeight: 700,
-            }}>◈ Why We Built This</div>
+          <div style={{ marginTop: "52px", padding: "32px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", ...stagger(4) }}>
+            <div style={{ fontSize: "9px", color: "rgba(255,184,0,0.6)", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: "20px", fontWeight: 700 }}>
+              ◈ Why We Built This
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               {[
                 { icon: "💡", title: "The Problem", text: "Over $1 trillion is lost to scams every year. Elderly people, immigrants, and anyone unfamiliar with digital fraud are targeted daily through SMS, email, WhatsApp, and social media." },
@@ -793,11 +738,11 @@ export default function ScamShield() {
                 { icon: "🤖", title: "How It Works", text: "ScamShield uses Llama 3.3 (70B) running on Groq's ultra-fast infrastructure to analyze messages for phishing patterns, urgency manipulation, fake branding, suspicious links, and social engineering tactics." },
                 { icon: "🔒", title: "Your Privacy", text: "Your messages are analyzed in real-time and never stored on our servers. We don't log, sell, or share any data. What you paste here stays here." },
               ].map((item, i) => (
-                <div key={item.title} style={{
+                <div key={item.title} className="about-card" style={{
                   display: "flex", gap: "16px", alignItems: "flex-start",
                   padding: "16px", borderRadius: "10px",
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.04)",
+                  background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)",
+                  transition: "all 0.25s cubic-bezier(0.16,1,0.3,1)",
                   animation: `slideInLeft 0.5s cubic-bezier(0.16,1,0.3,1) ${i * 0.1}s both`,
                 }}>
                   <span style={{ fontSize: "22px", flexShrink: 0 }}>{item.icon}</span>
@@ -811,11 +756,7 @@ export default function ScamShield() {
           </div>
 
           {/* ── FOOTER ── */}
-          <div style={{
-            textAlign: "center", marginTop: "36px",
-            fontSize: "10px", color: "rgba(200,212,224,0.15)",
-            lineHeight: 2, letterSpacing: "0.05em", ...stagger(4),
-          }}>
+          <div style={{ textAlign: "center", marginTop: "36px", fontSize: "10px", color: "rgba(200,212,224,0.15)", lineHeight: 2, letterSpacing: "0.05em", ...stagger(4) }}>
             <div style={{ marginBottom: "8px" }}>
               {["ScamShield AI", "Groq + Llama 3.3", "100% Free"].map((item, i) => (
                 <span key={item}>
@@ -824,28 +765,16 @@ export default function ScamShield() {
                 </span>
               ))}
             </div>
-            <div style={{ color: "rgba(200,212,224,0.1)", marginBottom: "14px" }}>
-              Messages never stored · Privacy first · Built to protect everyone
-            </div>
+            <div style={{ color: "rgba(200,212,224,0.1)", marginBottom: "14px" }}>Messages never stored · Privacy first · Built to protect everyone</div>
             <a href="mailto:nobodyai.contact@gmail.com" style={{
               display: "inline-flex", alignItems: "center", gap: "8px",
               padding: "8px 18px", borderRadius: "6px",
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.07)",
+              background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
               color: "rgba(255,184,0,0.45)", fontSize: "10px",
-              textDecoration: "none", letterSpacing: "0.04em",
-              transition: "all 0.25s",
+              textDecoration: "none", letterSpacing: "0.04em", transition: "all 0.25s",
             }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#ffb800";
-                e.currentTarget.style.borderColor = "rgba(255,184,0,0.3)";
-                e.currentTarget.style.background = "rgba(255,184,0,0.06)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "rgba(255,184,0,0.45)";
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
-                e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#ffb800"; e.currentTarget.style.borderColor = "rgba(255,184,0,0.3)"; e.currentTarget.style.background = "rgba(255,184,0,0.06)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,184,0,0.45)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
             >
               ✉️ &nbsp;Bugs or issues? &nbsp;nobodyai.contact@gmail.com
             </a>
