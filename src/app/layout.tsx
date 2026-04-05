@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Nav from "@/components/Nav";
 
 export const metadata: Metadata = {
   title: "ScamShield — Free AI Scam Detector",
@@ -12,7 +13,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body style={{ margin: 0, padding: 0 }}>{children}</body>
+      <body style={{ margin: 0, padding: 0 }}>
+        <Nav />
+        <div style={{ paddingTop: "56px" }}>
+          {children}
+        </div>
+      </body>
     </html>
   );
 }
