@@ -11,6 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
+        <meta name="google-site-verification" content="923OnHZldWokz6NvXZC_BmnRhLRvnD2bus6JQs3fePU" />
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&display=swap" rel="stylesheet" />
       </head>
       <body style={{ margin: 0, padding: 0 }}>
